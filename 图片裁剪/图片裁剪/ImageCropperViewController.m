@@ -34,6 +34,8 @@ static CGFloat distanceBetweenPoints(CGPoint point0, CGPoint point1) {
 @property (nonatomic, assign) CGFloat superViewMinY;
 @property (nonatomic, assign) CGFloat superViewMaxY;
 
+@property (nonatomic, assign) CGRect originalRect;
+
 @end
 
 @implementation CropView
@@ -45,7 +47,7 @@ static CGFloat distanceBetweenPoints(CGPoint point0, CGPoint point1) {
         self.layer.borderWidth = 10;
         self.backgroundColor = [UIColor clearColor];
         
-        
+        _originalRect = frame;
     }
     return self;
 }
@@ -62,10 +64,10 @@ static CGFloat distanceBetweenPoints(CGPoint point0, CGPoint point1) {
         CGPoint location = [[touches anyObject] locationInView:self];
         
         
-        CGPoint p0 = CGPointMake(0, 0);
-        CGPoint p1 = CGPointMake(self.frame.size.width, 0);
-        CGPoint p2 = CGPointMake(0, self.frame.size.height);
-        CGPoint p3 = CGPointMake(self.frame.size.width, self.frame.size.height);
+        CGPoint p0 = CGPointMake(-10, -10);
+        CGPoint p1 = CGPointMake(self.frame.size.width+10, -10);
+        CGPoint p2 = CGPointMake(-10, self.frame.size.height+10);
+        CGPoint p3 = CGPointMake(self.frame.size.width+10, self.frame.size.height+10);
         
         if (distanceBetweenPoints(location, p0) < kCropViewHotArea) {
             _pointLocation = leftTop;
@@ -96,13 +98,38 @@ static CGFloat distanceBetweenPoints(CGPoint point0, CGPoint point1) {
         CGFloat locationX = location.x;
         CGFloat locationY = location.y;
         
+        NSLog(@"%f %f", self.x, offX);
+        // 解决拖动中心超出边界问题
+        if (self.x + offX < _originalRect.origin.x)
+        {
+            self.x = _originalRect.origin.x;
+            offX = 0;
+        }
+        if (self.x + self.width + offX > _originalRect.size.width) {
+            self.x = _originalRect.size.width - self.width;
+            offX = 0;
+        }
+        if (self.y + offY < _originalRect.origin.y) {
+            self.y = _originalRect.origin.y;
+            offY = 0;
+        }
+        if (self.y + self.height + offY > _originalRect.size.height) {
+            self.y = _originalRect.size.height - self.height;
+            offY = 0;
+        }
+        
         
         if (_pointLocation == leftTop) {
             
-            
             if ((viewWidth -= locationX) >= kMinimumCropArea) {
-                frame.origin.x += location.x;
-                frame.size.width -= location.x;
+#warning 待解决： 扩大裁剪框的时候超出边界问题
+                if (self.x + offX > _originalRect.origin.x) {
+                    frame.origin.x += location.x;
+                    frame.size.width -= location.x;
+                } else {
+                    self.x = _originalRect.origin.x;
+                }
+                
             }
             
             if ((viewHeight -= locationY) >= kMinimumCropArea) {
